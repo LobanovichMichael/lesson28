@@ -56,20 +56,36 @@ public class HelloController implements Initializable {
         polygon.setOnMouseDragged(event -> {
             double offsetX = event.getSceneX() - anchorX[0];
             double offsetY = event.getSceneY() - anchorY[0];
-            System.out.println(event.getSceneX() + " " + event.getSceneY());
             polygon.setTranslateX(initialTranslateX[0] + offsetX);
             polygon.setTranslateY(initialTranslateY[0] + offsetY);
         });
 
         polygon.setOnMouseReleased(event -> {
+
+            // СДЕЛАТЬ ПОДСЧЕТ ИСХОДЯ ИЗ ЦЕНТРА ФИГУРЫ
             double currentX = polygon.getLayoutX() + polygon.getTranslateX();
             double currentY = polygon.getLayoutY() + polygon.getTranslateY();
+            int currentI = (int) ((currentX - 42) / 50);
+            int currentJ = (int) ((currentY - 42) / 50);
+            System.out.println(currentI + " " + currentJ);
 
-            if (currentX < 550 && currentX > 50 && currentY < 550 && currentY > 50) {
+            if (currentX < 550 && currentX > 42 && currentY < 550 && currentY > 42) {
                 polygon.setOnMouseDragged(null);
                 polygon.setOnMousePressed(null);
                 polygon.setOnMouseReleased(null);
+//                polygon.setTranslateX(0);
+//                polygon.setTranslateY(0);
+//                polygon.setLayoutX(50 + (currentI * 50) + currentI * (0.5));
+//                polygon.setLayoutY(50 + (currentJ * 50) + currentJ * (0.5));
 
+
+
+                polygon.setTranslateX(0);
+                polygon.setTranslateY(0);
+                polygon.setLayoutX(0);
+                polygon.setLayoutY(0);
+                root.getChildren().remove(polygon);
+                grid.add(polygon, currentI, currentJ);
                 createPolygon();
             } else {
                 polygon.setTranslateX(initialTranslateX[0]);
