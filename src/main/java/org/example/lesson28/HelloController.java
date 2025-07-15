@@ -2,11 +2,15 @@ package org.example.lesson28;
 
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
+import javafx.geometry.HPos;
+import javafx.geometry.VPos;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.shape.Polygon;
 
 import java.net.URL;
+import java.util.Arrays;
+import java.util.Random;
 import java.util.ResourceBundle;
 
 public class HelloController implements Initializable {
@@ -14,7 +18,24 @@ public class HelloController implements Initializable {
     @FXML
     AnchorPane root = new AnchorPane();
 
-    GridPane grid = new GridPane();
+    private GridPane grid = new GridPane();
+    private boolean[][] field = new boolean[10][];
+    private Double[][] polygons = {
+            {0.0, 0.0, 50.0, 0.0, 50.0, 50.0, 0.0, 50.0},
+            {0.0, 0.0, 100.0, 0.0, 100.0, 100.0, 0.0, 100.0},
+            {0.0, 0.0, 150.0, 0.0, 150.0, 50.0, 0.0, 50.0},
+            {0.0, 0.0, 50.0, 0.0, 50.0, 100.0, 150.0, 100.0, 150.0, 150.0, 0.0, 150.0}
+    };
+
+    private int[][] polygonsShift = {
+            {},
+            {1, 0, 1, 1, 0, 1},
+            {1, 0, 2, 0},
+            {0, 1, 0, 2, 1, 2, 2, 2}
+    };
+    int currentPolygonIndex;
+    private Random rand = new Random();
+
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
@@ -23,17 +44,26 @@ public class HelloController implements Initializable {
         grid.setLayoutY(50);
         root.getChildren().add(grid);
         createPolygon();
+        initializeField();
+    }
+
+
+    private void initializeField() {
+        for (int i = 0; i < 10; i++) {
+            field[i] = new boolean[10];
+            for(int j = 0; j < 10; j++ ) {
+                field[i][j] = false;
+            }
+        }
+        System.out.println(Arrays.deepToString(field));
     }
 
     private void createPolygon() {
         Polygon polygon = new Polygon();
-        polygon.getPoints().addAll(new Double[] {
-           0.0, 0.0,
-           50.0, 0.0,
-           50.0, 50.0,
-           0.0, 50.0
-        });
-        polygon.setFill(Color.BLUE);
+        currentPolygonIndex = rand.nextInt(polygons.length);
+//        currentPolygonIndex = 1;
+        polygon.getPoints().addAll(polygons[currentPolygonIndex]);
+        polygon.setFill(Color.rgb((int)(Math.random() * 255), (int)(Math.random() * 255), (int)(Math.random() * 255)));
         polygon.setLayoutX(600);
         polygon.setLayoutY(300);
         setupDragHandlers(polygon);
@@ -68,8 +98,9 @@ public class HelloController implements Initializable {
             int currentI = (int) ((currentX - 42) / 50);
             int currentJ = (int) ((currentY - 42) / 50);
             System.out.println(currentI + " " + currentJ);
+            if (currentX < 550 && currentX > 42 && currentY < 550 && currentY > 42 && canBePlaced(currentI, currentJ)) {
 
-            if (currentX < 550 && currentX > 42 && currentY < 550 && currentY > 42) {
+                fillField(currentI, currentJ);
                 polygon.setOnMouseDragged(null);
                 polygon.setOnMousePressed(null);
                 polygon.setOnMouseReleased(null);
@@ -86,6 +117,8 @@ public class HelloController implements Initializable {
                 polygon.setLayoutY(0);
                 root.getChildren().remove(polygon);
                 grid.add(polygon, currentI, currentJ);
+                GridPane.setHalignment(polygon, HPos.LEFT);
+                GridPane.setValignment(polygon, VPos.TOP);
                 createPolygon();
             } else {
                 polygon.setTranslateX(initialTranslateX[0]);
@@ -94,11 +127,36 @@ public class HelloController implements Initializable {
         });
     }
 
+    private void fillField(int i, int j) {
+        field[i][j] = true;
+        int[] currentShift = polygonsShift[currentPolygonIndex];
+        for (int k = 0; k < currentShift.length; k = k + 2) {
+            field[i + currentShift[k]][j + currentShift[k + 1]] = true;
+        }
+    }
+
+    private boolean canBePlaced(int i, int j) {
+        if (field[i][j]) {
+            return false;
+        }
+        int[] currentShift = polygonsShift[currentPolygonIndex];
+        for (int k = 0; k < currentShift.length; k = k + 2) {
+            if (i + currentShift[k] > 9 || j + currentShift[k + 1] > 9) {
+                return false;
+            }
+            if (field[i + currentShift[k]][j + currentShift[k + 1]]) {
+                return false;
+            }
+        }
+        return true;
+    }
+
     private void setupGridConstraints(GridPane gridPane) {
         // Настройка столбцов
         for (int i = 0; i < 10; i++) {
             ColumnConstraints colConst = new ColumnConstraints();
             colConst.setMinWidth(50);
+            colConst.setMaxWidth(50);
             colConst.setHgrow(Priority.ALWAYS);
             gridPane.getColumnConstraints().add(colConst);
         }
@@ -107,6 +165,7 @@ public class HelloController implements Initializable {
         for (int i = 0; i < 10; i++) {
             RowConstraints rowConst = new RowConstraints();
             rowConst.setMinHeight(50);
+            rowConst.setMaxHeight(50);
             rowConst.setVgrow(Priority.ALWAYS);
             gridPane.getRowConstraints().add(rowConst);
         }
