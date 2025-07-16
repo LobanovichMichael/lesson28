@@ -6,6 +6,7 @@ import javafx.geometry.HPos;
 import javafx.geometry.VPos;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
+import javafx.scene.paint.Paint;
 import javafx.scene.shape.Polygon;
 
 import java.net.URL;
@@ -24,14 +25,18 @@ public class HelloController implements Initializable {
             {0.0, 0.0, 50.0, 0.0, 50.0, 50.0, 0.0, 50.0},
             {0.0, 0.0, 100.0, 0.0, 100.0, 100.0, 0.0, 100.0},
             {0.0, 0.0, 150.0, 0.0, 150.0, 50.0, 0.0, 50.0},
-            {0.0, 0.0, 50.0, 0.0, 50.0, 100.0, 150.0, 100.0, 150.0, 150.0, 0.0, 150.0}
+            {0.0, 0.0, 50.0, 0.0, 50.0, 100.0, 150.0, 100.0, 150.0, 150.0, 0.0, 150.0},
+            {0.0, 0.0, 50.0, 0.0, 50.0, 150.0, 0.0, 150.0},
+            {0.0, 0.0, 50.0, 0.0, 50.0, -50.0, 100.0, -50.0, 100.0, 50.0, 50.0, 50.0, 50.0, 100.0, 0.0, 100.0}
     };
 
     private int[][] polygonsShift = {
             {},
             {1, 0, 1, 1, 0, 1},
             {1, 0, 2, 0},
-            {0, 1, 0, 2, 1, 2, 2, 2}
+            {0, 1, 0, 2, 1, 2, 2, 2},
+            {0, 1, 0, 2},
+            {0, 1, 1, 0, 1, -1}
     };
     int currentPolygonIndex;
     private Random rand = new Random();
@@ -100,7 +105,7 @@ public class HelloController implements Initializable {
             System.out.println(currentI + " " + currentJ);
             if (currentX < 550 && currentX > 42 && currentY < 550 && currentY > 42 && canBePlaced(currentI, currentJ)) {
 
-                fillField(currentI, currentJ);
+                fillField(currentI, currentJ, polygon.getFill());
                 polygon.setOnMouseDragged(null);
                 polygon.setOnMousePressed(null);
                 polygon.setOnMouseReleased(null);
@@ -116,9 +121,9 @@ public class HelloController implements Initializable {
                 polygon.setLayoutX(0);
                 polygon.setLayoutY(0);
                 root.getChildren().remove(polygon);
-                grid.add(polygon, currentI, currentJ);
-                GridPane.setHalignment(polygon, HPos.LEFT);
-                GridPane.setValignment(polygon, VPos.TOP);
+//                grid.add(polygon, currentI, currentJ);
+//                GridPane.setHalignment(polygon, HPos.LEFT);
+//                GridPane.setValignment(polygon, VPos.TOP);
                 createPolygon();
             } else {
                 polygon.setTranslateX(initialTranslateX[0]);
@@ -127,12 +132,24 @@ public class HelloController implements Initializable {
         });
     }
 
-    private void fillField(int i, int j) {
+    private void fillField(int i, int j, Paint color) {
         field[i][j] = true;
+        Polygon polygon = new Polygon();
+        polygon.getPoints().addAll(polygons[0]);
+        polygon.setFill(color);
+        grid.add(polygon, i, j);
         int[] currentShift = polygonsShift[currentPolygonIndex];
         for (int k = 0; k < currentShift.length; k = k + 2) {
             field[i + currentShift[k]][j + currentShift[k + 1]] = true;
+            polygon = new Polygon();
+            polygon.getPoints().addAll(polygons[0]);
+            polygon.setFill(color);
+            grid.add(polygon, i + currentShift[k], j + currentShift[k + 1]);
         }
+    }
+
+    private void checkRowsAndColumns() {
+
     }
 
     private boolean canBePlaced(int i, int j) {
