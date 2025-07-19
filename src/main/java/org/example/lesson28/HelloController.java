@@ -1,10 +1,11 @@
 package org.example.lesson28;
 
+import javafx.application.Platform;
 import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
-import javafx.geometry.HPos;
-import javafx.geometry.VPos;
 import javafx.scene.Node;
+import javafx.scene.control.Alert;
+import javafx.scene.control.ButtonType;
 import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
@@ -21,9 +22,9 @@ public class HelloController implements Initializable {
 
     @FXML
     Label score = new Label();
-    int scoreValue = 0;
+    int scoreValue;
 
-    private GridPane grid = new GridPane();
+    private GridPane grid;
     private boolean[][] field = new boolean[10][];
     private Double[][] polygons = {
             {0.0, 0.0, 50.0, 0.0, 50.0, 50.0, 0.0, 50.0},
@@ -48,12 +49,17 @@ public class HelloController implements Initializable {
 
     @Override
     public void initialize(URL url, ResourceBundle resourceBundle) {
-        setupGridConstraints(grid);
-        grid.setLayoutX(50);
-        grid.setLayoutY(50);
+        startGame();
+    }
+
+    private void startGame() {
+        root.getChildren().remove(grid);
+        grid = new GridPane();
+        setupGrid(grid);
         root.getChildren().add(grid);
         createPolygon();
         initializeField();
+        scoreValue = 0;
         score.setText("Score: " + scoreValue);
     }
 
@@ -68,7 +74,7 @@ public class HelloController implements Initializable {
         System.out.println(Arrays.deepToString(field));
     }
 
-    private void createPolygon() {
+    private Polygon createPolygon() {
         Polygon polygon = new Polygon();
         currentPolygonIndex = rand.nextInt(polygons.length);
 //        currentPolygonIndex = 1;
@@ -78,6 +84,7 @@ public class HelloController implements Initializable {
         polygon.setLayoutY(300);
         setupDragHandlers(polygon);
         root.getChildren().add(polygon);
+        return polygon;
     }
 
     private void setupDragHandlers(Polygon polygon) {
@@ -108,32 +115,37 @@ public class HelloController implements Initializable {
             int currentI = (int) ((currentX - 42) / 50);
             int currentJ = (int) ((currentY - 42) / 50);
             System.out.println(currentI + " " + currentJ);
-            if (currentX < 550 && currentX > 42 && currentY < 550 && currentY > 42 && canBePlaced(currentI, currentJ)) {
-
+            if (canBePlaced(currentI, currentJ)) {
                 fillField(currentI, currentJ, polygon.getFill());
-                polygon.setOnMouseDragged(null);
-                polygon.setOnMousePressed(null);
-                polygon.setOnMouseReleased(null);
-//                polygon.setTranslateX(0);
-//                polygon.setTranslateY(0);
-//                polygon.setLayoutX(50 + (currentI * 50) + currentI * (0.5));
-//                polygon.setLayoutY(50 + (currentJ * 50) + currentJ * (0.5));
-                polygon.setTranslateX(0);
-                polygon.setTranslateY(0);
-                polygon.setLayoutX(0);
-                polygon.setLayoutY(0);
                 root.getChildren().remove(polygon);
-//                grid.add(polygon, currentI, currentJ);
-//                GridPane.setHalignment(polygon, HPos.LEFT);
-//                GridPane.setValignment(polygon, VPos.TOP);
                 checkRowsAndColumns();
                 score.setText("Score: " + scoreValue);
-                createPolygon();
+                Polygon newPolygon = createPolygon();
+                if (isEnd()) {
+                    root.getChildren().remove(newPolygon);
+                    showEndGameMessage();
+                }
             } else {
                 polygon.setTranslateX(initialTranslateX[0]);
                 polygon.setTranslateY(initialTranslateY[0]);
             }
         });
+    }
+
+    private void showEndGameMessage() {
+        Alert alert = new Alert(Alert.AlertType.CONFIRMATION);
+        alert.setTitle("Конец игры!");
+        alert.setHeaderText(null);
+        alert.setContentText("Игра окончена! Ваш счет: " + scoreValue + ". Желаете сыграть еще раз?");
+        ButtonType playAgain = new ButtonType("Сыграть еще раз");
+        ButtonType leave = new ButtonType("Выйти");
+        alert.getButtonTypes().setAll(playAgain, leave);
+        Optional<ButtonType> answer = alert.showAndWait();
+        if (answer.isPresent() && answer.get() == playAgain) {
+            startGame();
+        } else {
+            Platform.exit();
+        }
     }
 
     private void fillField(int i, int j, Paint color) {
@@ -201,8 +213,8 @@ public class HelloController implements Initializable {
                 Integer rowIdx = GridPane.getRowIndex(node);
                 Integer colIdx = GridPane.getColumnIndex(node);
 
-                if (rowIdx == null) rowIdx = 0;
-                if (colIdx == null) colIdx = 0;
+                if (rowIdx == null) rowIdx = -1;
+                if (colIdx == null) colIdx = -1;
 
                 if (filledRows.contains(rowIdx) || filledCols.contains(colIdx)) {
                     nodesToRemove.add(node);
@@ -212,13 +224,26 @@ public class HelloController implements Initializable {
         }
     }
 
+    private boolean isEnd() {
+        boolean end = true;
+        for (int i = 0; i < 10; i++) {
+            for (int j = 0; j < 10; j++) {
+                if (canBePlaced(i, j)) {
+                    end = false;
+                    break;
+                }
+            }
+        }
+        return end;
+    }
+
     private boolean canBePlaced(int i, int j) {
-        if (field[i][j]) {
+        if (i >= 10 || j >= 10 || i < 0 || j < 0 || field[i][j]) {
             return false;
         }
         int[] currentShift = polygonsShift[currentPolygonIndex];
         for (int k = 0; k < currentShift.length; k = k + 2) {
-            if (i + currentShift[k] > 9 || j + currentShift[k + 1] > 9) {
+            if (i + currentShift[k] > 9 || j + currentShift[k + 1] > 9 || i + currentShift[k] < 0 || j + currentShift[k + 1] < 0) {
                 return false;
             }
             if (field[i + currentShift[k]][j + currentShift[k + 1]]) {
@@ -228,12 +253,17 @@ public class HelloController implements Initializable {
         return true;
     }
 
-    private void setupGridConstraints(GridPane gridPane) {
+    /**
+     *
+     * @param gridPane -
+     */
+    private void setupGrid(GridPane gridPane) {
+        grid.setLayoutX(50);
+        grid.setLayoutY(50);
         // Настройка столбцов
         for (int i = 0; i < 10; i++) {
             ColumnConstraints colConst = new ColumnConstraints();
             colConst.setMinWidth(50);
-            colConst.setMaxWidth(50);
             colConst.setHgrow(Priority.ALWAYS);
             gridPane.getColumnConstraints().add(colConst);
         }
@@ -242,7 +272,6 @@ public class HelloController implements Initializable {
         for (int i = 0; i < 10; i++) {
             RowConstraints rowConst = new RowConstraints();
             rowConst.setMinHeight(50);
-            rowConst.setMaxHeight(50);
             rowConst.setVgrow(Priority.ALWAYS);
             gridPane.getRowConstraints().add(rowConst);
         }
