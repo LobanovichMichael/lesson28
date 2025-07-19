@@ -4,20 +4,24 @@ import javafx.fxml.FXML;
 import javafx.fxml.Initializable;
 import javafx.geometry.HPos;
 import javafx.geometry.VPos;
+import javafx.scene.Node;
+import javafx.scene.control.Label;
 import javafx.scene.layout.*;
 import javafx.scene.paint.Color;
 import javafx.scene.paint.Paint;
 import javafx.scene.shape.Polygon;
 
 import java.net.URL;
-import java.util.Arrays;
-import java.util.Random;
-import java.util.ResourceBundle;
+import java.util.*;
 
 public class HelloController implements Initializable {
 
     @FXML
     AnchorPane root = new AnchorPane();
+
+    @FXML
+    Label score = new Label();
+    int scoreValue = 0;
 
     private GridPane grid = new GridPane();
     private boolean[][] field = new boolean[10][];
@@ -50,6 +54,7 @@ public class HelloController implements Initializable {
         root.getChildren().add(grid);
         createPolygon();
         initializeField();
+        score.setText("Score: " + scoreValue);
     }
 
 
@@ -113,9 +118,6 @@ public class HelloController implements Initializable {
 //                polygon.setTranslateY(0);
 //                polygon.setLayoutX(50 + (currentI * 50) + currentI * (0.5));
 //                polygon.setLayoutY(50 + (currentJ * 50) + currentJ * (0.5));
-
-
-
                 polygon.setTranslateX(0);
                 polygon.setTranslateY(0);
                 polygon.setLayoutX(0);
@@ -124,6 +126,8 @@ public class HelloController implements Initializable {
 //                grid.add(polygon, currentI, currentJ);
 //                GridPane.setHalignment(polygon, HPos.LEFT);
 //                GridPane.setValignment(polygon, VPos.TOP);
+                checkRowsAndColumns();
+                score.setText("Score: " + scoreValue);
                 createPolygon();
             } else {
                 polygon.setTranslateX(initialTranslateX[0]);
@@ -146,10 +150,66 @@ public class HelloController implements Initializable {
             polygon.setFill(color);
             grid.add(polygon, i + currentShift[k], j + currentShift[k + 1]);
         }
+        scoreValue += currentShift.length / 2 + 1;
     }
 
     private void checkRowsAndColumns() {
+        List<Integer> filledRows = new ArrayList<>();
+        List<Integer> filledCols = new ArrayList<>();
 
+        for (int i = 0; i < 10; i++) {
+            boolean colFilled = true;
+            for (int j = 0; j < 10; j++) {
+                if (!field[i][j]) {
+                    colFilled = false;
+                    break;
+                }
+            }
+            if (colFilled) filledCols.add(i);
+        }
+
+        for (int j = 0; j < 10; j++) {
+            boolean rowFilled = true;
+            for (int i = 0; i < 10; i++) {
+                if (!field[i][j]) {
+                    rowFilled = false;
+                    break;
+                }
+            }
+            if (rowFilled) filledRows.add(j);
+        }
+
+        if (!filledRows.isEmpty() || !filledCols.isEmpty()) {
+            scoreValue += filledRows.size() * 10 + filledCols.size() * 10;
+//            System.out.println("DELETING ROWS" + filledRows.toString());
+//            System.out.println("DELETING COLS" + filledCols.toString());
+//            System.out.println("Grid children: " + grid.getChildren().size());
+//            System.out.println("Grid width: " + grid.getWidth() + ", height: " + grid.getHeight());
+            for (int j : filledRows) {
+                for (int i = 0; i < 10; i++) {
+                    field[i][j] = false;
+                }
+            }
+            for (int i : filledCols) {
+                for (int j = 0; j < 10; j++) {
+                    field[i][j] = false;
+                }
+            }
+
+            List<Node> nodesToRemove = new ArrayList<>();
+            for (Node node : grid.getChildren()) {
+                Integer rowIdx = GridPane.getRowIndex(node);
+                Integer colIdx = GridPane.getColumnIndex(node);
+
+                if (rowIdx == null) rowIdx = 0;
+                if (colIdx == null) colIdx = 0;
+
+                if (filledRows.contains(rowIdx) || filledCols.contains(colIdx)) {
+                    nodesToRemove.add(node);
+                }
+            }
+            grid.getChildren().removeAll(nodesToRemove);
+        }
     }
 
     private boolean canBePlaced(int i, int j) {
